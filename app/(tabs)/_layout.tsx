@@ -101,6 +101,14 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name='watched'
+        options={{
+          title: 'Watched',
+          tabBarIcon: ({ color }) => <TabBarIcon name='check' color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

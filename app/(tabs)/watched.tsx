@@ -12,18 +12,18 @@ import {
 import {
   getLibrary,
   migrateIfNeeded,
-  removeFromWatchlist,
-  type MovieItem,
+  unwatch,
+  type WatchedItem,
 } from '@/src/storage/library';
 
-export default function WatchlistScreen() {
+export default function WatchedScreen() {
   const router = useRouter();
-  const [watchlist, setWatchlist] = useState<MovieItem[]>([]);
+  const [watched, setWatched] = useState<WatchedItem[]>([]);
 
   async function load() {
     await migrateIfNeeded();
     const lib = await getLibrary();
-    setWatchlist(lib.watchlist);
+    setWatched(lib.watched);
   }
 
   useFocusEffect(
@@ -32,22 +32,22 @@ export default function WatchlistScreen() {
     }, []),
   );
 
-  async function handleRemove(imdbID: string) {
-    const lib = await removeFromWatchlist(imdbID);
-    setWatchlist(lib.watchlist);
+  async function handleMoveBack(imdbID: string) {
+    const lib = await unwatch(imdbID);
+    setWatched(lib.watched);
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Watchlist</Text>
+      <Text style={styles.title}>Watched</Text>
 
-      {watchlist.length === 0 ? (
+      {watched.length === 0 ? (
         <Text style={styles.empty}>
-          No movies saved yet. Add some from Search.
+          No watched movies yet. Mark one watched from Details.
         </Text>
       ) : (
         <FlatList
-          data={watchlist}
+          data={watched}
           keyExtractor={(item) => item.imdbID}
           renderItem={({ item }) => (
             <View style={styles.movieRow}>
@@ -75,9 +75,9 @@ export default function WatchlistScreen() {
 
               <Pressable
                 style={styles.actionBtn}
-                onPress={() => handleRemove(item.imdbID)}
+                onPress={() => handleMoveBack(item.imdbID)}
               >
-                <Text style={styles.actionText}>Remove</Text>
+                <Text style={styles.actionText}>Unwatch</Text>
               </Pressable>
             </View>
           )}

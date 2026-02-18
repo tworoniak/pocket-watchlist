@@ -12,10 +12,14 @@ import {
 
 import { getMovieDetails } from '@/src/api/omdb';
 import {
-  addMovieToWatchlist,
-  getWatchlist,
-  removeMovieFromWatchlist,
-} from '@/src/storage/watchlist';
+  addToWatchlist,
+  getLibrary,
+  markWatched,
+  migrateIfNeeded,
+  removeFromWatchlist,
+  unwatch,
+  type MovieItem,
+} from '@/src/storage/library';
 
 export default function MovieDetailsScreen() {
   const router = useRouter();
@@ -23,7 +27,9 @@ export default function MovieDetailsScreen() {
 
   const [movie, setMovie] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaved, setIsSaved] = useState(false);
+
+  const [inWatchlist, setInWatchlist] = useState(false);
+  const [inWatched, setInWatched] = useState(false);
 
   useEffect(() => {
     if (!imdbID) return;
@@ -37,34 +43,61 @@ export default function MovieDetailsScreen() {
         const data = await getMovieDetails(imdbID, controller.signal);
         setMovie(data);
 
-        const watchlist = await getWatchlist();
-        setIsSaved(watchlist.some((m) => m.imdbID === imdbID));
+        await migrateIfNeeded();
+        const lib = await getLibrary();
+
+        setInWatchlist(lib.watchlist.some((m) => m.imdbID === imdbID));
+        setInWatched(lib.watched.some((m) => m.imdbID === imdbID));
       } catch (err) {
-        console.log(err);
+        console.log('Details error:', err);
       } finally {
         setIsLoading(false);
       }
     }
 
     load();
-
     return () => controller.abort();
   }, [imdbID]);
 
   async function handleToggleWatchlist() {
     if (!movie) return;
 
-    if (isSaved) {
-      await removeMovieFromWatchlist(movie.imdbID);
-      setIsSaved(false);
+    const item: MovieItem = {
+      imdbID: movie.imdbID,
+      Title: movie.Title,
+      Year: movie.Year,
+      Poster: movie.Poster,
+    };
+
+    if (inWatchlist) {
+      const lib = await removeFromWatchlist(item.imdbID);
+      setInWatchlist(false);
+      setInWatched(lib.watched.some((m) => m.imdbID === item.imdbID));
     } else {
-      await addMovieToWatchlist({
-        imdbID: movie.imdbID,
-        Title: movie.Title,
-        Year: movie.Year,
-        Poster: movie.Poster,
-      });
-      setIsSaved(true);
+      const lib = await addToWatchlist(item);
+      setInWatchlist(true);
+      setInWatched(lib.watched.some((m) => m.imdbID === item.imdbID)); // should be false
+    }
+  }
+
+  async function handleToggleWatched() {
+    if (!movie) return;
+
+    const item: MovieItem = {
+      imdbID: movie.imdbID,
+      Title: movie.Title,
+      Year: movie.Year,
+      Poster: movie.Poster,
+    };
+
+    if (inWatched) {
+      const lib = await unwatch(item.imdbID);
+      setInWatched(false);
+      setInWatchlist(lib.watchlist.some((m) => m.imdbID === item.imdbID));
+    } else {
+      await markWatched(item);
+      setInWatched(true);
+      setInWatchlist(false);
     }
   }
 
@@ -107,7 +140,13 @@ export default function MovieDetailsScreen() {
 
       <Pressable style={styles.button} onPress={handleToggleWatchlist}>
         <Text style={styles.buttonText}>
-          {isSaved ? 'Remove from Watchlist' : 'Add to Watchlist'}
+          {inWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
+        </Text>
+      </Pressable>
+
+      <Pressable style={styles.button} onPress={handleToggleWatched}>
+        <Text style={styles.buttonText}>
+          {inWatched ? 'Mark as Unwatched' : 'Mark as Watched'}
         </Text>
       </Pressable>
 
@@ -144,7 +183,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   buttonText: { color: 'white', fontWeight: '700' },
   sectionTitle: {
