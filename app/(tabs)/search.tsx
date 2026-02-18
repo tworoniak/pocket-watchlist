@@ -13,7 +13,7 @@ import {
 
 import { searchMovies, type OmdbSearchMovie } from '@/src/api/omdb';
 import { useDebounce } from '@/src/hooks/useDebounce';
-import { getWatchlist } from '@/src/storage/watchlist';
+import { getLibrary, migrateIfNeeded } from '@/src/storage/library';
 
 const MIN_CHARS = 3;
 
@@ -35,11 +35,16 @@ export default function SearchScreen() {
   // Saved badge support
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
+  const [watchlistIds, setWatchlistIds] = useState<Set<string>>(new Set());
+  const [watchedIds, setWatchedIds] = useState<Set<string>>(new Set());
+
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        const wl = await getWatchlist();
-        setSavedIds(new Set(wl.map((m) => m.imdbID)));
+        await migrateIfNeeded();
+        const lib = await getLibrary();
+        setWatchlistIds(new Set(lib.watchlist.map((m) => m.imdbID)));
+        setWatchedIds(new Set(lib.watched.map((m) => m.imdbID)));
       })();
     }, []),
   );
@@ -113,6 +118,8 @@ export default function SearchScreen() {
 
   const renderItem = ({ item }: { item: OmdbSearchMovie }) => {
     const isSaved = savedIds.has(item.imdbID);
+    const inWatchlist = watchlistIds.has(item.imdbID);
+    const inWatched = watchedIds.has(item.imdbID);
 
     return (
       <Pressable
@@ -135,11 +142,15 @@ export default function SearchScreen() {
               {item.Title}
             </Text>
 
-            {isSaved && (
+            {inWatched ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>Watched</Text>
+              </View>
+            ) : inWatchlist ? (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>Saved</Text>
               </View>
-            )}
+            ) : null}
           </View>
 
           <Text style={styles.movieYear}>{item.Year}</Text>
