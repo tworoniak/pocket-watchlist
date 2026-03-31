@@ -43,3 +43,7 @@ yarn-error.*
 
 # unused assets
 /unused
+
+# Claude-related
+CLAUDE.md
+.claude/*
