@@ -61,6 +61,10 @@ export default function WatchedScreen() {
           onAction={handleUnwatch}
           actionLabel="Unwatch"
           emptyMessage="No watched movies yet. Mark one watched from Details."
+          getSubtitle={(item) => {
+            const w = item as WatchedItem;
+            return `Watched ${new Date(w.watchedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+          }}
         />
       )}
     </View>
