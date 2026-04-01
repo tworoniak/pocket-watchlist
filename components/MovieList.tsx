@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import {
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -10,6 +10,7 @@ import {
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
+import { POSTER_FALLBACK_URI } from '@/src/constants';
 import type { MovieItem } from '@/src/storage/library';
 
 type Props = {
@@ -43,15 +44,10 @@ export function MovieList({ items, onAction, actionLabel, emptyMessage }: Props)
             accessibilityLabel={`${item.Title}, ${item.Year}. View details.`}
           >
             <Image
-              source={{
-                uri:
-                  item.Poster !== 'N/A'
-                    ? item.Poster
-                    : 'https://via.placeholder.com/80x120.png?text=No+Poster',
-              }}
+              source={{ uri: item.Poster !== 'N/A' ? item.Poster : POSTER_FALLBACK_URI }}
               style={styles.poster}
-              accessibilityLabel={`${item.Title} poster`}
-              accessibilityIgnoresInvertColors
+              alt={`${item.Title} poster`}
+              transition={200}
             />
 
             <View style={styles.movieInfo}>

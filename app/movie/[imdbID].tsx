@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { Image } from 'expo-image';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,6 +13,7 @@ import {
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { getMovieDetails, type OmdbMovieDetail } from '@/src/api/omdb';
+import { POSTER_FALLBACK_URI } from '@/src/constants';
 import {
   addToWatchlist,
   getLibrary,
@@ -141,15 +142,10 @@ export default function MovieDetailsScreen() {
       <Text style={[styles.title, { color: c.text }]}>{movie.Title}</Text>
 
       <Image
-        source={{
-          uri:
-            movie.Poster !== 'N/A'
-              ? movie.Poster
-              : 'https://via.placeholder.com/200x300.png?text=No+Poster',
-        }}
+        source={{ uri: movie.Poster !== 'N/A' ? movie.Poster : POSTER_FALLBACK_URI }}
         style={styles.poster}
-        accessibilityLabel={`${movie.Title} poster`}
-        accessibilityIgnoresInvertColors
+        alt={`${movie.Title} poster`}
+        transition={200}
       />
 
       <Text style={[styles.meta, { color: c.subtext }]}>
