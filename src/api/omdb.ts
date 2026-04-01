@@ -17,6 +17,19 @@ export type OmdbSearchMovie = {
   Poster: string;
 };
 
+export type OmdbMovieDetail = {
+  imdbID: string;
+  Title: string;
+  Year: string;
+  Rated: string;
+  Runtime: string;
+  Genre: string;
+  Actors: string;
+  Plot: string;
+  Poster: string;
+  imdbRating: string;
+};
+
 export async function searchMovies(
   query: string,
   page = 1,
@@ -42,7 +55,10 @@ export async function searchMovies(
   };
 }
 
-export async function getMovieDetails(imdbID: string, signal?: AbortSignal) {
+export async function getMovieDetails(
+  imdbID: string,
+  signal?: AbortSignal,
+): Promise<OmdbMovieDetail> {
   requireKey();
 
   const url = `${BASE_URL}?apikey=${OMDB_KEY}&i=${encodeURIComponent(imdbID)}&plot=full`;
@@ -53,5 +69,5 @@ export async function getMovieDetails(imdbID: string, signal?: AbortSignal) {
   if (data.Response === 'False')
     throw new Error(data.Error || 'Failed to load movie details');
 
-  return data;
+  return data as OmdbMovieDetail;
 }

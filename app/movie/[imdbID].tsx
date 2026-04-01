@@ -12,7 +12,7 @@ import {
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
-import { getMovieDetails } from '@/src/api/omdb';
+import { getMovieDetails, type OmdbMovieDetail } from '@/src/api/omdb';
 import {
   addToWatchlist,
   getLibrary,
@@ -28,8 +28,9 @@ export default function MovieDetailsScreen() {
   const colorScheme = useColorScheme();
   const c = Colors[colorScheme ?? 'light'];
 
-  const [movie, setMovie] = useState<any>(null);
+  const [movie, setMovie] = useState<OmdbMovieDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [inWatchlist, setInWatchlist] = useState(false);
   const [inWatched, setInWatched] = useState(false);
 
@@ -41,14 +42,18 @@ export default function MovieDetailsScreen() {
     async function load() {
       try {
         setIsLoading(true);
+        setError(null);
+
         const data = await getMovieDetails(imdbID, controller.signal);
         setMovie(data);
 
         const lib = await getLibrary();
         setInWatchlist(lib.watchlist.some((m) => m.imdbID === imdbID));
         setInWatched(lib.watched.some((m) => m.imdbID === imdbID));
-      } catch (err) {
-        console.log('Details error:', err);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          setError(err?.message ?? 'Failed to load movie details.');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -102,22 +107,27 @@ export default function MovieDetailsScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: c.background }]}>
         <ActivityIndicator size="large" />
       </View>
     );
   }
 
-  if (!movie) {
+  if (error || !movie) {
     return (
       <View style={[styles.center, { backgroundColor: c.background }]}>
-        <Text style={{ color: c.text }}>Movie not found.</Text>
+        <Text
+          style={[styles.errorText, { color: c.error }]}
+          accessibilityRole="alert"
+        >
+          {error ?? 'Movie not found.'}
+        </Text>
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Text style={{ marginTop: 10, color: c.tint }}>Go Back</Text>
+          <Text style={[styles.backLink, { color: c.tint }]}>Go Back</Text>
         </Pressable>
       </View>
     );
@@ -146,8 +156,9 @@ export default function MovieDetailsScreen() {
         {movie.Year} • {movie.Runtime} • {movie.Rated}
       </Text>
 
+      {/* Outline button — lightweight "save for later" action */}
       <Pressable
-        style={[styles.button, { backgroundColor: c.buttonBg }]}
+        style={[styles.buttonOutline, { borderColor: c.buttonBg }]}
         onPress={handleToggleWatchlist}
         accessibilityRole="button"
         accessibilityLabel={
@@ -156,13 +167,14 @@ export default function MovieDetailsScreen() {
             : `Add ${movie.Title} to watchlist`
         }
       >
-        <Text style={[styles.buttonText, { color: c.buttonText }]}>
+        <Text style={[styles.buttonOutlineText, { color: c.buttonBg }]}>
           {inWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
         </Text>
       </Pressable>
 
+      {/* Filled button — primary "mark done" action */}
       <Pressable
-        style={[styles.button, { backgroundColor: c.buttonBg }]}
+        style={[styles.buttonFilled, { backgroundColor: c.buttonBg }]}
         onPress={handleToggleWatched}
         accessibilityRole="button"
         accessibilityLabel={
@@ -171,7 +183,7 @@ export default function MovieDetailsScreen() {
             : `Mark ${movie.Title} as watched`
         }
       >
-        <Text style={[styles.buttonText, { color: c.buttonText }]}>
+        <Text style={[styles.buttonFilledText, { color: c.buttonText }]}>
           {inWatched ? 'Mark as Unwatched' : 'Mark as Watched'}
         </Text>
       </Pressable>
@@ -194,7 +206,9 @@ export default function MovieDetailsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  errorText: { fontSize: 16, textAlign: 'center', marginBottom: 12 },
+  backLink: { fontSize: 16 },
   title: { fontSize: 26, fontWeight: '800', marginBottom: 12 },
   poster: {
     width: 220,
@@ -204,14 +218,23 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   meta: { textAlign: 'center', marginBottom: 16 },
-  button: {
+  buttonOutline: {
+    borderWidth: 1.5,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 12,
   },
-  buttonText: { fontWeight: '700' },
+  buttonOutlineText: { fontWeight: '700' },
+  buttonFilled: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  buttonFilledText: { fontWeight: '700' },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
