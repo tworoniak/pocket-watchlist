@@ -18,9 +18,10 @@ type Props = {
   onAction: (item: MovieItem) => void;
   actionLabel: string;
   emptyMessage: string;
+  getSubtitle?: (item: MovieItem) => string | null;
 };
 
-export function MovieList({ items, onAction, actionLabel, emptyMessage }: Props) {
+export function MovieList({ items, onAction, actionLabel, emptyMessage, getSubtitle }: Props) {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const c = Colors[colorScheme ?? 'light'];
@@ -60,6 +61,11 @@ export function MovieList({ items, onAction, actionLabel, emptyMessage }: Props)
               <Text style={[styles.movieYear, { color: c.subtext }]}>
                 {item.Year}
               </Text>
+              {getSubtitle && (
+                <Text style={[styles.movieSubtitle, { color: c.subtext }]}>
+                  {getSubtitle(item)}
+                </Text>
+              )}
             </View>
           </Pressable>
 
@@ -93,6 +99,7 @@ const styles = StyleSheet.create({
   movieInfo: { justifyContent: 'center', flex: 1 },
   movieTitle: { fontSize: 16, fontWeight: '600' },
   movieYear: { fontSize: 14, marginTop: 4 },
+  movieSubtitle: { fontSize: 12, marginTop: 2 },
 
   actionBtn: {
     paddingVertical: 12,
