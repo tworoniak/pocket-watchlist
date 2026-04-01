@@ -9,40 +9,41 @@ import {
   View,
 } from 'react-native';
 
+import Colors from '@/constants/Colors';
+import { useColorScheme } from '@/components/useColorScheme';
 import {
   getLibrary,
-  migrateIfNeeded,
   unwatch,
   type WatchedItem,
 } from '@/src/storage/library';
 
 export default function WatchedScreen() {
   const router = useRouter();
-  const [watched, setWatched] = useState<WatchedItem[]>([]);
+  const colorScheme = useColorScheme();
+  const c = Colors[colorScheme ?? 'light'];
 
-  async function load() {
-    await migrateIfNeeded();
-    const lib = await getLibrary();
-    setWatched(lib.watched);
-  }
+  const [watched, setWatched] = useState<WatchedItem[]>([]);
 
   useFocusEffect(
     useCallback(() => {
-      load();
+      (async () => {
+        const lib = await getLibrary();
+        setWatched(lib.watched);
+      })();
     }, []),
   );
 
-  async function handleMoveBack(imdbID: string) {
-    const lib = await unwatch(imdbID);
+  async function handleMoveBack(item: WatchedItem) {
+    const lib = await unwatch(item.imdbID);
     setWatched(lib.watched);
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Watched</Text>
+    <View style={[styles.container, { backgroundColor: c.background }]}>
+      <Text style={[styles.title, { color: c.text }]}>Watched</Text>
 
       {watched.length === 0 ? (
-        <Text style={styles.empty}>
+        <Text style={[styles.empty, { color: c.subtext }]}>
           No watched movies yet. Mark one watched from Details.
         </Text>
       ) : (
@@ -50,10 +51,12 @@ export default function WatchedScreen() {
           data={watched}
           keyExtractor={(item) => item.imdbID}
           renderItem={({ item }) => (
-            <View style={styles.movieRow}>
+            <View style={[styles.movieRow, { borderBottomColor: c.border }]}>
               <Pressable
                 style={styles.rowLeft}
                 onPress={() => router.push(`/movie/${item.imdbID}`)}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.Title}, ${item.Year}. View details.`}
               >
                 <Image
                   source={{
@@ -63,21 +66,32 @@ export default function WatchedScreen() {
                         : 'https://via.placeholder.com/80x120.png?text=No+Poster',
                   }}
                   style={styles.poster}
+                  accessibilityLabel={`${item.Title} poster`}
+                  accessibilityIgnoresInvertColors
                 />
 
                 <View style={styles.movieInfo}>
-                  <Text style={styles.movieTitle} numberOfLines={1}>
+                  <Text
+                    style={[styles.movieTitle, { color: c.text }]}
+                    numberOfLines={1}
+                  >
                     {item.Title}
                   </Text>
-                  <Text style={styles.movieYear}>{item.Year}</Text>
+                  <Text style={[styles.movieYear, { color: c.subtext }]}>
+                    {item.Year}
+                  </Text>
                 </View>
               </Pressable>
 
               <Pressable
-                style={styles.actionBtn}
-                onPress={() => handleMoveBack(item.imdbID)}
+                style={[styles.actionBtn, { backgroundColor: c.buttonBg }]}
+                onPress={() => handleMoveBack(item)}
+                accessibilityRole="button"
+                accessibilityLabel={`Mark ${item.Title} as unwatched`}
               >
-                <Text style={styles.actionText}>Unwatch</Text>
+                <Text style={[styles.actionText, { color: c.buttonText }]}>
+                  Unwatch
+                </Text>
               </Pressable>
             </View>
           )}
@@ -90,26 +104,24 @@ export default function WatchedScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   title: { fontSize: 26, fontWeight: '700', marginBottom: 12 },
-  empty: { marginTop: 20, fontSize: 16, color: '#666' },
+  empty: { marginTop: 20, fontSize: 16 },
 
   movieRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   rowLeft: { flexDirection: 'row', gap: 12, flex: 1 },
   poster: { width: 60, height: 90, borderRadius: 8 },
   movieInfo: { justifyContent: 'center', flex: 1 },
   movieTitle: { fontSize: 16, fontWeight: '600' },
-  movieYear: { fontSize: 14, color: '#666', marginTop: 4 },
+  movieYear: { fontSize: 14, marginTop: 4 },
 
   actionBtn: {
-    backgroundColor: '#222',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
-  actionText: { color: 'white', fontWeight: '700' },
+  actionText: { fontWeight: '700' },
 });
