@@ -1,9 +1,9 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Image } from 'expo-image';
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -14,6 +14,7 @@ import {
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { searchMovies, type OmdbSearchMovie } from '@/src/api/omdb';
+import { POSTER_FALLBACK_URI } from '@/src/constants';
 import { useDebounce } from '@/src/hooks/useDebounce';
 import { getLibrary } from '@/src/storage/library';
 
@@ -116,15 +117,10 @@ export default function SearchScreen() {
           accessibilityLabel={`${item.Title}, ${item.Year}${statusLabel}. View details.`}
         >
           <Image
-            source={{
-              uri:
-                item.Poster !== 'N/A'
-                  ? item.Poster
-                  : 'https://via.placeholder.com/80x120.png?text=No+Poster',
-            }}
+            source={{ uri: item.Poster !== 'N/A' ? item.Poster : POSTER_FALLBACK_URI }}
             style={styles.poster}
-            accessibilityLabel={`${item.Title} poster`}
-            accessibilityIgnoresInvertColors
+            alt={`${item.Title} poster`}
+            transition={200}
           />
 
           <View style={styles.movieInfo}>
