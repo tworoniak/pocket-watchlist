@@ -10,12 +10,13 @@ import {
   View,
 } from 'react-native';
 
+import Colors from '@/constants/Colors';
+import { useColorScheme } from '@/components/useColorScheme';
 import { getMovieDetails } from '@/src/api/omdb';
 import {
   addToWatchlist,
   getLibrary,
   markWatched,
-  migrateIfNeeded,
   removeFromWatchlist,
   unwatch,
   type MovieItem,
@@ -24,10 +25,11 @@ import {
 export default function MovieDetailsScreen() {
   const router = useRouter();
   const { imdbID } = useLocalSearchParams<{ imdbID: string }>();
+  const colorScheme = useColorScheme();
+  const c = Colors[colorScheme ?? 'light'];
 
   const [movie, setMovie] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-
   const [inWatchlist, setInWatchlist] = useState(false);
   const [inWatched, setInWatched] = useState(false);
 
@@ -39,13 +41,10 @@ export default function MovieDetailsScreen() {
     async function load() {
       try {
         setIsLoading(true);
-
         const data = await getMovieDetails(imdbID, controller.signal);
         setMovie(data);
 
-        await migrateIfNeeded();
         const lib = await getLibrary();
-
         setInWatchlist(lib.watchlist.some((m) => m.imdbID === imdbID));
         setInWatched(lib.watched.some((m) => m.imdbID === imdbID));
       } catch (err) {
@@ -76,7 +75,7 @@ export default function MovieDetailsScreen() {
     } else {
       const lib = await addToWatchlist(item);
       setInWatchlist(true);
-      setInWatched(lib.watched.some((m) => m.imdbID === item.imdbID)); // should be false
+      setInWatched(lib.watched.some((m) => m.imdbID === item.imdbID));
     }
   }
 
@@ -104,25 +103,32 @@ export default function MovieDetailsScreen() {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size='large' />
+        <ActivityIndicator size="large" />
       </View>
     );
   }
 
   if (!movie) {
     return (
-      <View style={styles.center}>
-        <Text>Movie not found.</Text>
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ marginTop: 10, color: 'blue' }}>Go Back</Text>
+      <View style={[styles.center, { backgroundColor: c.background }]}>
+        <Text style={{ color: c.text }}>Movie not found.</Text>
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Text style={{ marginTop: 10, color: c.tint }}>Go Back</Text>
         </Pressable>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>{movie.Title}</Text>
+    <ScrollView
+      style={[styles.container, { backgroundColor: c.background }]}
+      contentContainerStyle={styles.content}
+    >
+      <Text style={[styles.title, { color: c.text }]}>{movie.Title}</Text>
 
       <Image
         source={{
@@ -132,41 +138,62 @@ export default function MovieDetailsScreen() {
               : 'https://via.placeholder.com/200x300.png?text=No+Poster',
         }}
         style={styles.poster}
+        accessibilityLabel={`${movie.Title} poster`}
+        accessibilityIgnoresInvertColors
       />
 
-      <Text style={styles.meta}>
+      <Text style={[styles.meta, { color: c.subtext }]}>
         {movie.Year} • {movie.Runtime} • {movie.Rated}
       </Text>
 
-      <Pressable style={styles.button} onPress={handleToggleWatchlist}>
-        <Text style={styles.buttonText}>
+      <Pressable
+        style={[styles.button, { backgroundColor: c.buttonBg }]}
+        onPress={handleToggleWatchlist}
+        accessibilityRole="button"
+        accessibilityLabel={
+          inWatchlist
+            ? `Remove ${movie.Title} from watchlist`
+            : `Add ${movie.Title} to watchlist`
+        }
+      >
+        <Text style={[styles.buttonText, { color: c.buttonText }]}>
           {inWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
         </Text>
       </Pressable>
 
-      <Pressable style={styles.button} onPress={handleToggleWatched}>
-        <Text style={styles.buttonText}>
+      <Pressable
+        style={[styles.button, { backgroundColor: c.buttonBg }]}
+        onPress={handleToggleWatched}
+        accessibilityRole="button"
+        accessibilityLabel={
+          inWatched
+            ? `Mark ${movie.Title} as unwatched`
+            : `Mark ${movie.Title} as watched`
+        }
+      >
+        <Text style={[styles.buttonText, { color: c.buttonText }]}>
           {inWatched ? 'Mark as Unwatched' : 'Mark as Watched'}
         </Text>
       </Pressable>
 
-      <Text style={styles.sectionTitle}>Plot</Text>
-      <Text style={styles.body}>{movie.Plot}</Text>
+      <Text style={[styles.sectionTitle, { color: c.text }]}>Plot</Text>
+      <Text style={[styles.body, { color: c.text }]}>{movie.Plot}</Text>
 
-      <Text style={styles.sectionTitle}>Cast</Text>
-      <Text style={styles.body}>{movie.Actors}</Text>
+      <Text style={[styles.sectionTitle, { color: c.text }]}>Cast</Text>
+      <Text style={[styles.body, { color: c.text }]}>{movie.Actors}</Text>
 
-      <Text style={styles.sectionTitle}>Genre</Text>
-      <Text style={styles.body}>{movie.Genre}</Text>
+      <Text style={[styles.sectionTitle, { color: c.text }]}>Genre</Text>
+      <Text style={[styles.body, { color: c.text }]}>{movie.Genre}</Text>
 
-      <Text style={styles.sectionTitle}>IMDb Rating</Text>
-      <Text style={styles.body}>{movie.imdbRating}</Text>
+      <Text style={[styles.sectionTitle, { color: c.text }]}>IMDb Rating</Text>
+      <Text style={[styles.body, { color: c.text }]}>{movie.imdbRating}</Text>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  container: { flex: 1 },
+  content: { padding: 16, paddingBottom: 40 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 26, fontWeight: '800', marginBottom: 12 },
   poster: {
@@ -176,21 +203,20 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 14,
   },
-  meta: { textAlign: 'center', color: '#666', marginBottom: 16 },
+  meta: { textAlign: 'center', marginBottom: 16 },
   button: {
-    backgroundColor: '#222',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 12,
   },
-  buttonText: { color: 'white', fontWeight: '700' },
+  buttonText: { fontWeight: '700' },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     marginTop: 14,
     marginBottom: 6,
   },
-  body: { fontSize: 15, lineHeight: 22, color: '#333' },
+  body: { fontSize: 15, lineHeight: 22 },
 });
